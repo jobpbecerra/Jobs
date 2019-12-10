@@ -1,0 +1,88 @@
+%%Script con datos generados
+
+%Se genera el tiempo (10segs)
+tz = (0:0.001:10)';
+%Datos generados (diferentes frecuencias con ruido)
+y1 = 2+sin(2*pi*20*tz) + 2*sin(2*pi*30*tz)+ 5*sin(2*pi*50*tz)...
+    + 3*sin(2*pi*70*tz);
+%y2 = sin(2*pi*80*tz) + 2*sin(2*pi*40*tz)+ 5*sin(2*pi*60*tz)...
+    + 3*sin(2*pi*20*tz);
+
+    
+lfp = horzcat(y1);
+
+figure;
+subplot 221;
+plot(tz,lfp)
+
+
+%-------------Espectrograma---------
+movingwin=[2 0.05];
+params.Fs = 1000;%Frec de adquisicion
+params.fpass=[0 100];%Intervalo de frecuencia a graficar
+params.tapers=[5 9];
+params.trialave=1;%Obtiene la media de todos los canales
+params.err=0;
+[S1,t1,f1]= mtspecgramc(lfp,movingwin,params);
+
+subplot 223; %Grafica espectrograma
+plot_matrix(S1,t1,f1);
+title('Espectrograma')
+ylabel('Frecuencia (Hz)')
+xlabel('Tiempo (s)')
+
+%-------------------Espectro de frecuencias LFP
+params.trialave=0;%Hace la media de los canales
+params.Fs=1000;%Frecuencia de captura
+params.fpass=[0 200];%Intervalo de tiempo a graficar
+[S,f]=mtspectrumc(y1,params);%Potencia(S)/Frecuencia(f)
+
+subplot 224;
+plot_vector(S,f)
+
+
+
+
+
+
+%                         Filtrado banda beta
+
+%Diseño de filtro y aplicacion
+fc = [15 35]; %Frecuenia de corte (Hz)--Banda beta
+fs = 1000; %Frecuenia de captura (señal)
+%filtro butter de 6° orden con correcion de fase
+[b,a] = butter(6,fc/(fs/2),'bandpass'); 
+lfpbeta = filtfilt(b,a,lfp);
+
+figure;
+subplot 221;
+plot(tz,lfpbeta)
+
+%-------------Espectrograma (banda beta)---------
+movingwin=[2 0.05];
+params.Fs = 1000;%Frec de adquisicion
+params.fpass=[0 100];%Intervalo de frecuencia a graficar
+params.tapers=[5 9];
+params.trialave=1;%Obtiene la media de todos los canales
+params.err=0;
+[S1,t1,f1]= mtspecgramc(lfpbeta,movingwin,params);
+
+subplot 223; %Grafica espectrograma
+plot_matrix(S1,t1,f1);
+title('Espectrograma')
+ylabel('Frecuencia (Hz)')
+xlabel('Tiempo (s)')
+
+%Espectro de  banda beta
+params.trialave=0;%Hace la media de los canales
+params.Fs=1000;%Frecuencia de captura
+params.fpass=[0 200];%Intervalo de tiempo a graficar
+[S2,f2]=mtspectrumc(lfpbeta,params);%Potencia(S)/Frecuencia(f)
+
+subplot 224;%Grafica PSD
+plot_vector(S2,f2)
+
+
+%Genera la envelope de banda beta
+envelope = abs(hilbert(lfpbeta));
+plot(tz,envelope,tz,lfpbeta)
