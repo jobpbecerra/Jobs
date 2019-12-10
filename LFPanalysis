@@ -1,0 +1,147 @@
+%%                Analisis LFP Plexon para probe 64 canales
+%Se requiere de toolbox Chronux para analisis
+
+
+%Variables
+ventanainicio=0;
+ventanafin=100;
+fs = 1000; %frecuencia de muestreo
+
+ventana=[ventanainicio ventanafin]; %Ventana a graficar
+
+%--------------------------respiracion----------------------------
+%AI01_filtered = AI01_filtered-AI01_filtered(1,1); %respiracion inicio a CERO
+%tr = (0+1/fs:1/fs:length(AI01_filtered)/fs)'; %tiempo respiracion
+
+
+%---------Tiempo de registro---------
+tz = (0+1/fs:1/fs:length(lfp)/fs)'; %vector de tiempo de lfp
+
+
+%-------------Espectrograma---------
+movingwin=[2 0.05];
+params.Fs = 1000;%Frec de adquisicion
+params.fpass=[0 100];%Intervalo de frecuencia a graficar
+params.tapers=[5 9];
+params.trialave=1;%Obtiene la media de todos los canales
+params.err=0;
+[S1,t1,f1]= mtspecgramc(lfp,movingwin,params);
+
+%--------------------Espectro de frecuencias------------------
+params.trialave = 1;%Hace la media de los canales
+params.Fs = 1000;%Frecuencia de captura
+params.tapers=[10 19];%10 19
+p=0.05;
+params.err=[2 p];
+params.fpass = [0 100];%Intervalo de frecuencias a graficar
+[S2,f2,Serr] = mtspectrumc(lfp,params);%Potencia(S)/Frecuencia(f)/Error
+
+%Se crea figura
+figure;
+subplot 411;%Grafica registro
+plot(tz,lfp)
+title('Registro')
+ylabel('Voltaje(mV)')
+xlabel('Tiempo(s)')
+xlim(ventana)
+
+subplot 412; %Grafica espectrograma
+plot_matrix(S1,t1,f1);
+title('Espectrograma')
+ylabel('Frecuencia (Hz)')
+xlabel('Tiempo (s)')
+xlim(ventana)
+
+subplot 413; %Grafica espectro de potencia
+plot_vector(S2,f2)
+hold
+plot(f2,10*log10(Serr(2,:)),'r');
+plot(f2,10*log10(Serr(1,:)),'r');
+title('Espectro de frecuencias')
+ylabel('Potencia (dB)')
+xlabel('Frecuencia (Hz)')
+
+% subplot 414; %Grafica respiracion
+% plot(tr,AI01_filtered)
+% title('Respiración')
+% xlabel('Tiempo (s)')
+% xlim(ventana)
+
+
+%%                        Filtrado de lfp por bandas
+%      Diseño de filtro butterworh pasabandas y zero phase "filtfilt"
+%                       'para banda alfa (1-15Hz)'
+
+fc = [1 15]; %Frecuenia de corte (Hz)--Banda alfa
+fs = 1000; %Frecuenia de captura (señal)
+%filtro butter de 4° orden con correcion de fase
+[b,a] = butter(4,fc/(fs/2),'bandpass'); 
+lfpalfa = filtfilt(b,a,lfp);
+
+
+%     Diseño de filtro butterworth pasabandas y zero phase "filtfilt"
+%                       'para banda beta (15-35 Hz)'
+
+fc = [15 35]; %Frecuenia de corte (Hz)--Banda beta
+fs = 1000; %Frecuenia de captura (señal)
+%filtro butter de 4° orden con correcion de fase
+[b,a] = butter(4,fc/(fs/2),'bandpass'); 
+lfpbeta = filtfilt(b,a,lfp);
+
+%     Diseño de filtro butterworh pasabandas y zero phase "filtfilt"
+%                       'para banda gamma (35-100 Hz)'
+
+fc = [35 100]; %Frecuenia de corte (Hz)--Banda gamma
+fs = 1000; %Frecuenia de captura (señal)
+%filtro butter de 4° orden con correcion de fase
+[b,a] = butter(4,fc/(fs/2),'bandpass'); 
+lfpgamma = filtfilt(b,a,lfp);
+
+%-------------------------Se crea figura para bandas---------------------
+figure;
+subplot 221;%Grafica registro banda alfa
+plot(tz,lfpalfa)
+title('Registro banda alfa (1-15 Hz)')
+ylabel('Voltaje(mV)')
+xlabel('Tiempo(s)')
+xlim(ventana)
+
+subplot 222;%Grafica registro banda beta
+plot(tz,lfpbeta)
+title('Registro banda beta (15-35 Hz)')
+ylabel('Voltaje(mV)')
+xlabel('Tiempo(s)')
+xlim(ventana)
+
+subplot 223;%Grafica registro banda gamma
+plot(tz,lfpgamma)
+title('Registro banda gamma (35-100 Hz)')
+ylabel('Voltaje(mV)')
+xlabel('Tiempo(s)')
+xlim(ventana)
+
+
+
+percentil75 = prctile(lfpbeta,95)
+
+
+%Derivada de la transformada de Hilbert
+
+hil=diff(hilbert(lfpbeta));
+envelope = abs(hilbert(lfpbeta));
+
+figure;
+subplot 121;
+plot(tz,hil)
+xlim(ventana)
+title('Registro banda beta transformada de hilbert (15-35 Hz)')
+ylabel('Voltaje(mV)')
+xlabel('Tiempo(s)')
+
+subplot 122;%Grafica registro banda beta
+plot(tz,lfpbeta)
+title('Registro banda beta (15-35 Hz)')
+ylabel('Voltaje(mV)')
+xlabel('Tiempo(s)')
+xlim(ventana)
+
