@@ -1,21 +1,25 @@
-%%                Analisis LFP Plexon para probe 64 canales
-%Se requiere de toolbox Chronux para analisis
+%%                Analisis LFP para 16 canales
+%Requiere toolbox Chronux
 
+% %Canales:
+% LFPf=LFPf(:,17:32); 
 
 %Variables
+
+%Ventana a graficar
+fs = 1000; %Frecuencia de muestreo LFP
 ventanainicio=0;
-ventanafin=100;
-fs = 1000; %frecuencia de muestreo
+ventanafin=900;
+ventana=[ventanainicio ventanafin]; 
 
-ventana=[ventanainicio ventanafin]; %Ventana a graficar
 
-%--------------------------respiracion----------------------------
-%AI01_filtered = AI01_filtered-AI01_filtered(1,1); %respiracion inicio a CERO
-%tr = (0+1/fs:1/fs:length(AI01_filtered)/fs)'; %tiempo respiracion
+% %--------------------------respiracion----------------------------
+% AI01_filtered = AI01_filtered-AI01_filtered(1,1); %respiracion inicio a CERO
+% tr = (0+1/fs:1/fs:length(AI01_filtered)/fs)'; %tiempo respiracion
 
 
 %---------Tiempo de registro---------
-tz = (0+1/fs:1/fs:length(lfp)/fs)'; %vector de tiempo de lfp
+tz = (0+1/fs:1/fs:length(LFPf)/fs)'; %vector de tiempo de lfp
 
 
 %-------------Espectrograma---------
@@ -25,7 +29,7 @@ params.fpass=[0 100];%Intervalo de frecuencia a graficar
 params.tapers=[5 9];
 params.trialave=1;%Obtiene la media de todos los canales
 params.err=0;
-[S1,t1,f1]= mtspecgramc(lfp,movingwin,params);
+[S1,t1,f1]= mtspecgramc(LFPf,movingwin,params);
 
 %--------------------Espectro de frecuencias------------------
 params.trialave = 1;%Hace la media de los canales
@@ -34,25 +38,25 @@ params.tapers=[10 19];%10 19
 p=0.05;
 params.err=[2 p];
 params.fpass = [0 100];%Intervalo de frecuencias a graficar
-[S2,f2,Serr] = mtspectrumc(lfp,params);%Potencia(S)/Frecuencia(f)/Error
+[S2,f2,Serr] = mtspectrumc(LFPf,params);%Potencia(S)/Frecuencia(f)/Error
 
 %Se crea figura
 figure;
-subplot 411;%Grafica registro
-plot(tz,lfp)
+subplot 221;%Grafica registro
+plot(tz,LFPf)
 title('Registro')
 ylabel('Voltaje(mV)')
 xlabel('Tiempo(s)')
 xlim(ventana)
 
-subplot 412; %Grafica espectrograma
+subplot 222; %Grafica espectrograma
 plot_matrix(S1,t1,f1);
 title('Espectrograma')
 ylabel('Frecuencia (Hz)')
 xlabel('Tiempo (s)')
 xlim(ventana)
 
-subplot 413; %Grafica espectro de potencia
+subplot 223; %Grafica espectro de potencia
 plot_vector(S2,f2)
 hold
 plot(f2,10*log10(Serr(2,:)),'r');
@@ -61,7 +65,7 @@ title('Espectro de frecuencias')
 ylabel('Potencia (dB)')
 xlabel('Frecuencia (Hz)')
 
-% subplot 414; %Grafica respiracion
+% subplot 224; %Grafica respiracion
 % plot(tr,AI01_filtered)
 % title('Respiración')
 % xlabel('Tiempo (s)')
@@ -70,13 +74,13 @@ xlabel('Frecuencia (Hz)')
 
 %%                        Filtrado de lfp por bandas
 %      Diseño de filtro butterworh pasabandas y zero phase "filtfilt"
-%                       'para banda alfa (1-15Hz)'
+%                       'para banda alfa (1-14Hz)'
 
-fc = [1 15]; %Frecuenia de corte (Hz)--Banda alfa
+fc = [1 14]; %Frecuenia de corte (Hz)--Banda alfa
 fs = 1000; %Frecuenia de captura (señal)
 %filtro butter de 4° orden con correcion de fase
 [b,a] = butter(4,fc/(fs/2),'bandpass'); 
-lfpalfa = filtfilt(b,a,lfp);
+lfpalfa = filtfilt(b,a,LFPf);
 
 
 %     Diseño de filtro butterworth pasabandas y zero phase "filtfilt"
@@ -86,62 +90,176 @@ fc = [15 35]; %Frecuenia de corte (Hz)--Banda beta
 fs = 1000; %Frecuenia de captura (señal)
 %filtro butter de 4° orden con correcion de fase
 [b,a] = butter(4,fc/(fs/2),'bandpass'); 
-lfpbeta = filtfilt(b,a,lfp);
+lfpbeta = filtfilt(b,a,LFPf);
 
 %     Diseño de filtro butterworh pasabandas y zero phase "filtfilt"
 %                       'para banda gamma (35-100 Hz)'
 
-fc = [35 100]; %Frecuenia de corte (Hz)--Banda gamma
+fc = [36 100]; %Frecuenia de corte (Hz)--Banda gamma
 fs = 1000; %Frecuenia de captura (señal)
 %filtro butter de 4° orden con correcion de fase
 [b,a] = butter(4,fc/(fs/2),'bandpass'); 
-lfpgamma = filtfilt(b,a,lfp);
+lfpgamma = filtfilt(b,a,LFPf);
+
+
+
+
+
+
+
 
 %-------------------------Se crea figura para bandas---------------------
 figure;
-subplot 221;%Grafica registro banda alfa
+subplot 331;%Grafica registro banda alfa
 plot(tz,lfpalfa)
-title('Registro banda alfa (1-15 Hz)')
+title('Registro banda alfa (1-14 Hz)')
 ylabel('Voltaje(mV)')
 xlabel('Tiempo(s)')
 xlim(ventana)
 
-subplot 222;%Grafica registro banda beta
+subplot 332;%Grafica registro banda beta
 plot(tz,lfpbeta)
 title('Registro banda beta (15-35 Hz)')
 ylabel('Voltaje(mV)')
 xlabel('Tiempo(s)')
 xlim(ventana)
 
-subplot 223;%Grafica registro banda gamma
+subplot 333;%Grafica registro banda gamma
 plot(tz,lfpgamma)
-title('Registro banda gamma (35-100 Hz)')
+title('Registro banda gamma (36-100 Hz)')
 ylabel('Voltaje(mV)')
 xlabel('Tiempo(s)')
 xlim(ventana)
 
+%---------Envolvente (envelope) de bandas------
+
+%Genera la envelope de banda alfa usando el valor absoluto de la
+%transformada de Hilbert
+envelopealfa = abs(hilbert(lfpalfa));
+subplot 334;
+menvelopealfa=(mean(envelopealfa'))';
+plot(tz,menvelopealfa)
+title('Envolvente banda alfa (1-14 Hz)')
+ylabel('Voltaje(mV)')
+xlabel('Tiempo(s)')
+xlim(ventana)
+thralfa = prctile(menvelopealfa,95);
+yline(thralfa,'--','y = percentil 95','LineWidth',2);
+
+%Genera la envelope de banda beta usando el valor absoluto de la
+%transformada de Hilbert
+envelopebeta = abs(hilbert(lfpbeta));
+subplot 335;
+menvelopebeta=(mean(envelopebeta'))';
+plot(tz,menvelopebeta)
+title('Envolvente banda beta (15-35 Hz)')
+ylabel('Voltaje(mV)')
+xlabel('Tiempo(s)')
+xlim(ventana)
+thrbeta = prctile(menvelopebeta,95);
+yline(thrbeta,'--','y = percentil 95','LineWidth',2);
+
+%Genera la envelope de banda gamma usando el valor absoluto de la
+%transformada de Hilbert
+envelopegamma = abs(hilbert(lfpgamma));
+subplot 336;
+menvelopegamma=(mean(envelopegamma'))';
+plot(tz,menvelopegamma)
+title('Envolvente banda gamma (36-100 Hz)')
+ylabel('Voltaje(mV)')
+xlabel('Tiempo(s)')
+xlim(ventana)
+
+thrgamma = prctile(menvelopegamma,95);
+yline(thrgamma,'--','y = percentil 95','LineWidth',2);
 
 
-percentil75 = prctile(lfpbeta,95)
+%---------Espectro de potencias de cada banda
+
+%--------------------Espectro de frecuencias------------------
+
+%Banda alfa
+params.trialave = 1;%Hace la media de los canales
+params.Fs = 1000;%Frecuencia de captura
+params.tapers=[10 19];%10 19
+p=0.05;
+params.err=[2 p];
+params.fpass = [0 100];%Intervalo de frecuencias a graficar
+[Salfa,falfa,Serralfa] = mtspectrumc(lfpalfa,params);%Potencia(S)/Frecuencia(f)/Error
+
+subplot 337; %Grafica espectro de potencia
+plot_vector(Salfa,falfa)
+hold
+plot(falfa,10*log10(Serralfa(2,:)),'r');
+plot(falfa,10*log10(Serralfa(1,:)),'r');
+title('Espectro de frecuencias (banda alfa)')
+ylabel('Potencia (dB)')
+xlabel('Frecuencia (Hz)')
 
 
-%Derivada de la transformada de Hilbert
+%Banda beta
+params.trialave = 1;%Hace la media de los canales
+params.Fs = 1000;%Frecuencia de captura
+params.tapers=[10 19];%10 19
+p=0.05;
+params.err=[2 p];
+params.fpass = [0 100];%Intervalo de frecuencias a graficar
+[Sbeta,fbeta,Serrbeta] = mtspectrumc(lfpbeta,params);%Potencia(S)/Frecuencia(f)/Error
 
-hil=diff(hilbert(lfpbeta));
-envelope = abs(hilbert(lfpbeta));
+subplot 338; %Grafica espectro de potencia
+plot_vector(Sbeta,fbeta)
+hold
+plot(fbeta,10*log10(Serrbeta(2,:)),'r');
+plot(fbeta,10*log10(Serrbeta(1,:)),'r');
+title('Espectro de frecuencias (banda beta)')
+ylabel('Potencia (dB)')
+xlabel('Frecuencia (Hz)')
+
+
+%Banda gamma
+params.trialave = 1;%Hace la media de los canales
+params.Fs = 1000;%Frecuencia de captura
+params.tapers=[10 19];%10 19
+p=0.05;
+params.err=[2 p];
+params.fpass = [0 100];%Intervalo de frecuencias a graficar
+[Sgamma,fgamma,Serrgamma] = mtspectrumc(lfpgamma,params);%Potencia(S)/Frecuencia(f)/Error
+
+subplot 339; %Grafica espectro de potencia
+plot_vector(Sgamma,fgamma)
+hold
+plot(fgamma,10*log10(Serrgamma(2,:)),'r');
+plot(fgamma,10*log10(Serrgamma(1,:)),'r');
+title('Espectro de frecuencias (banda gamma)')
+ylabel('Potencia (dB)')
+xlabel('Frecuencia (Hz)')
+
+
+%----------Promedio de potencia de bandas-------
+potenciatotal=mean(S2(1050:104858,:));
+potenciadelta=mean(S2(2099:5243,:));
+potenciatheta=mean(S2(5244:12853,:));
+potenciabeta=mean(S2(12584:31458,:));
+potenciagamma=mean(S2(31459:104858,:));
+potencias=[potenciatotal potenciadelta potenciatheta potenciabeta potenciagamma]
+c = categorical({'Total','Delta','Theta','Beta','Gamma'});
 
 figure;
-subplot 121;
-plot(tz,hil)
-xlim(ventana)
-title('Registro banda beta transformada de hilbert (15-35 Hz)')
-ylabel('Voltaje(mV)')
-xlabel('Tiempo(s)')
+bar(c,potencias)
+title('Potencia de bandas')
+xlabel ('Banda')
+ylabel ('Potencia (dB)')
 
-subplot 122;%Grafica registro banda beta
-plot(tz,lfpbeta)
-title('Registro banda beta (15-35 Hz)')
-ylabel('Voltaje(mV)')
-xlabel('Tiempo(s)')
-xlim(ventana)
+
+palfa=[(mean(lfpalfa'))' (mean(envelopealfa'))'];
+pbeta=[(mean(lfpbeta'))' (mean(envelopebeta'))'];
+pgamma=[(mean(lfpgamma'))' (mean(envelopegamma'))'];
+
+figure;
+subplot 131
+plot(tz,palfa)
+subplot 132
+plot(tz,pbeta)
+subplot 133
+plot(tz,pgamma)
 
